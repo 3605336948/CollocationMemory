@@ -1,0 +1,36 @@
+{
+  "_说明": [
+    "★ 只需要填一次这个文件，之后每次发版都不用再动它。",
+    "把 REPLACE_ME 换成你真实的 Gitee / GitHub 用户名和仓库名即可。",
+    "",
+    "仓库长这样就行（公有仓库、免费）：",
+    "  https://gitee.com/<你的用户名>/collocation-update",
+    "仓库里只需要有两样东西：",
+    "  · releases 里挂 APK（Gitee 网页上「发行版 → 新建发行版」上传）",
+    "  · master 分支根目录放 manifest.json（内容由 make_manifest.py 生成）",
+    "  · 可选：library/app_library.json 和 library/corrections.json（词库热更新用）",
+    "",
+    "如果暂时不想接服务器，把两个 base 留成 REPLACE_ME 也能跑：",
+    "App 连不上时会安静地跳过检查，绝不会报错或者卡住启动。"
+  ],
+
+  "giteeBase": "https://gitee.com/bz360/collocation-update",
+  "githubBase": "https://github.com/bz360/collocation-update",
+
+  "_tagPrefix 说明": "发行版的 tag 前缀，最终 tag 形如 v3.8",
+  "tagPrefix": "v",
+
+  "_apkBaseName 说明": "生成的 APK 文件名前缀，最终形如 CollocationMemory-3.8-release.apk",
+  "apkBaseName": "CollocationMemory",
+
+  "_minSupportedVersionCode 说明": [
+    "0 = 不强制更新，用户可点「以后再说」。",
+    "填一个版本号（例如 28）= 手机上装的版本低于它时必须更新完才能用。",
+    "什么时候才该填：改了数据库表结构、旧版本会写坏数据、或修了严重 bug。",
+    "平时留 0 —— 强制更新很赶人。"
+  ],
+  "minSupportedVersionCode": 0,
+
+  "_forceUpdate 说明": "true = 这一版无论如何都必须更新（比 minSupportedVersionCode 更狠，谨慎用）",
+  "forceUpdate": false
+}

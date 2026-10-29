@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">搭配记忆</string>
+    <string name="home">首页</string>
+    <string name="wordbook">生词本</string>
+    <string name="stats">统计</string>
+    <string name="settings">设置</string>
+    <string name="learn">Learn</string>
+    <string name="review">Review</string>
+    <string name="look_answer">看答案</string>
+    <string name="forget">忘记</string>
+    <string name="vague">模糊</string>
+    <string name="know">认识</string>
+</resources>

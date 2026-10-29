@@ -1,0 +1,44 @@
+# ===== 标准 Android 忽略 =====
+*.iml
+.gradle
+.idea/
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+build/
+captures
+.externalNativeBuild
+.cxx
+local.properties
+release.keystore
+gradle.properties
+tools/update/dist/
+
+# ===== 蓝哥固定搭配单词本（授权专有内容，不入库）=====
+# 占位 app_library.json 入库以保证可构建；真实词库见本地备份与 gitee 热更新通道
+tools/assets/*.bak*
+tools/assets/wtest.txt
+collocations_all.json
+collocations_book1.json
+collocations_book2.json
+lib_v12.json
+sample_collocations.json
+tools/update/corrections.json
+tools/dev/
+
+# ===== 打包产物（含已烘焙词库的 APK/zip/宣传视频）=====
+*.apk
+*.zip
+*.mp4
+
+# ===== 热更新部署仓库（独立 git，含线上词库 payload）=====
+tools/update/gitee-push/
+
+# ===== 个人备份 / 工作记忆 =====
+backup/
+.workbuddy/

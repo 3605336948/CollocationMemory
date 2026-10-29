@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>搭配记忆 · 单词卡片学习页</title>
+<style>
+  :root{
+    /* 浅色文字体系：叠在压暗后的模糊壁纸之上（与 app 现有处理一致） */
+    --text:      #f6f5f2;   /* 近白正文 */
+    --muted:     rgba(255,255,255,.62);
+    --hair:      rgba(255,255,255,.18);   /* 发丝分隔线 */
+    --accent:    #e6c3a3;   /* 克制的暖色，仅用于极少量强调 */
+    --reveal-bg: rgba(255,255,255,.10);   /* 释义底（半透） */
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; margin:0; }
+  body{
+    background:#15140f; color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    padding:max(24px,env(safe-area-inset-top)) 20px max(24px,env(safe-area-inset-bottom));
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+
+  /* 当日壁纸层：模拟 AppBackground（blur 14dp + Black 0.18 压暗），按星期几轮换 7 张 */
+  .wallpaper{
+    position:fixed; inset:-40px; z-index:0;
+    background-size:cover; background-position:center;
+    filter:blur(14px); transform:scale(1.06);
+  }
+  .wallpaper::after{
+    content:""; position:absolute; inset:0; background:rgba(0,0,0,.18);
+  }
+
+  /* 卡片：占满视口、无边框无阴影，浮在壁纸之上 */
+  .card{
+    position:relative; z-index:1;
+    width:100%; max-width:460px;
+    display:flex; flex-direction:column;
+    min-height:62vh; justify-content:center;
+    text-shadow:0 1px 2px rgba(0,0,0,.25);
+    animation:fade .35s ease;
+  }
+  @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+  .word{
+    font-size:clamp(2.6rem,11vw,3.4rem);
+    font-weight:600; letter-spacing:.5px; line-height:1.1; margin:0;
+    color:var(--text);
+  }
+  .phon{
+    margin-top:14px; display:flex; align-items:center; gap:10px;
+    color:var(--muted); font-size:1.05rem;
+  }
+  .speak{
+    appearance:none; border:1px solid var(--hair); background:transparent;
+    width:34px; height:34px; border-radius:50%; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center;
+    color:var(--muted); transition:.18s;
+  }
+  .speak:hover{ color:var(--text); border-color:var(--muted); }
+  .speak:active{ transform:scale(.94); }
+  .speak svg{ width:15px; height:15px; }
+
+  .example{
+    margin-top:30px; padding-left:14px; border-left:2px solid var(--hair);
+    color:rgba(255,255,255,.82); font-size:1.02rem; line-height:1.7; font-style:italic;
+    text-shadow:none;
+  }
+  .example b{ font-style:normal; font-weight:600; color:#fff; }
+
+  /* 释义：默认隐藏，不认识/模糊时淡入 */
+  .meaning{
+    margin-top:22px; padding:16px 18px; background:var(--reveal-bg);
+    border:1px solid var(--hair); border-radius:10px;
+    font-size:1rem; line-height:1.6; color:rgba(255,255,255,.92);
+    max-height:0; overflow:hidden; padding-top:0; padding-bottom:0;
+    border-width:0; opacity:0; transition:.3s ease; text-shadow:none;
+  }
+  .meaning.show{ max-height:240px; opacity:1; padding-top:16px; padding-bottom:16px; border-width:1px; }
+
+  /* 顶部极轻状态行 */
+  .meta{
+    position:fixed; z-index:2; top:max(18px,env(safe-area-inset-top)); left:0; right:0;
+    text-align:center; font-size:.78rem; color:var(--muted); letter-spacing:.4px;
+    text-shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+  .dots{ display:inline-flex; gap:6px; margin-left:8px; vertical-align:middle; }
+  .dot{ width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.25); }
+  .dot.on{ background:var(--accent); }
+
+  /* 底部三反馈：等权、文字化、发丝线分隔，不抢戏 */
+  .actions{
+    position:fixed; z-index:2; left:0; right:0; bottom:max(22px,env(safe-area-inset-bottom));
+    display:flex; justify-content:center; gap:0; padding:0 20px;
+  }
+  .actions button{
+    flex:1; max-width:150px; appearance:none; background:transparent; border:none;
+    border-top:1px solid var(--hair); padding:18px 0 4px;
+    color:var(--muted); font-size:1rem; cursor:pointer; transition:.18s; font-family:inherit;
+  }
+  .actions button + button{ border-left:1px solid var(--hair); }
+  .actions button:hover{ color:var(--text); }
+  .actions button:active{ transform:translateY(1px); }
+  .actions .know{ color:var(--accent); }
+
+  /* 版权水印：卡底浅色小字，不可取消（对应 app 的 BLUE_BOOK_WATERMARK） */
+  .watermark{
+    margin-top:26px; font-size:.69rem; letter-spacing:.2px;
+    color:rgba(255,255,255,.35); text-align:center;
+  }
+  .watermark:empty{ margin-top:0; }
+
+  .hint{
+    position:fixed; z-index:2; right:16px; bottom:calc(max(22px,env(safe-area-inset-bottom)) + 54px);
+    font-size:.74rem; color:var(--muted); cursor:pointer; user-select:none;
+  }
+  .hint:hover{ color:var(--text); }
+</style>
+</head>
+<body>
+  <!-- 模糊壁纸层（CSS 渐变占位 7 张，按星期几轮换；真机为 bg1..bg7 实拍图） -->
+  <div class="wallpaper" id="wallpaper"></div>
+
+  <div class="meta" id="meta"></div>
+
+  <main class="card" id="card">
+    <h1 class="word" id="word">—</h1>
+    <div class="phon">
+      <button class="speak" id="speak" aria-label="发音">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.06a7 7 0 0 1 0 13.48v2.06a9 9 0 0 0 0-17.6z"/></svg>
+      </button>
+      <span id="phon">/—/</span>
+    </div>
+    <p class="example" id="example"></p>
+    <div class="meaning" id="meaning"></div>
+    <div class="watermark" id="watermark"></div>
+  </main>
+
+  <div class="hint" id="hint">看释义</div>
+
+  <nav class="actions">
+    <button data-q="unknown">不认识</button>
+    <button data-q="fuzzy">模糊</button>
+    <button class="know" data-q="know">认识</button>
+  </nav>
+
+<script>
+/* =========================================================================
+ * 算法层（可移植到 Kotlin/Compose）
+ * 设计目标：
+ *  1) 初学阶段：连续“认识” LEARN_REQUIRED(=2) 次才算通过，进入复习。
+ *     —— 与已发版 v4.3.2 一致（连对 2 次），非“不背单词”截图里的 4 次。
+ *  2) 复习阶段：基于艾宾浩斯遗忘曲线的动态间隔（指数级拉开）。
+ *     正确回忆 → 间隔乘 ease 系数放大；模糊/不认识 → 视为遗忘，间隔回落。
+ * ========================================================================= */
+const LEARN_REQUIRED = 2;
+const DAY = 86400000;
+const now = () => Date.now();
+const daysBetween = (due) => Math.max(0, Math.round((due - now()) / DAY));
+
+function createItem(){
+  return {
+    stage: 'learning',     // 'learning' | 'review'
+    consecutive: 0,        // 初学阶段连续“认识”计数
+    reps: 0,               // 复习阶段成功次数
+    ease: 2.5,             // 间隔放大系数（艾宾浩斯：遗忘越快，间隔越需拉长）
+    interval: 0,           // 当前复习间隔（天）
+    due: 0                 // 下次应复习时间戳
+  };
+}
+
+/* quality: 'know'(正确回忆) | 'fuzzy'(勉强) | 'unknown'(遗忘) */
+function rate(item, quality){
+  if (item.stage === 'learning'){
+    if (quality === 'know'){
+      item.consecutive += 1;
+      if (item.consecutive >= LEARN_REQUIRED){
+        // 初学通过 → 进入复习，首间隔 1 天
+        item.stage = 'review';
+        item.reps = 0; item.interval = 1; item.due = now() + DAY;
+      }
+    } else {
+      // 模糊 / 不认识：清零连对，留在初学、短期后再现
+      item.consecutive = 0;
+    }
+    return;
+  }
+
+  // 复习阶段（SM-2 简化 + 艾宾浩斯指数间隔）
+  if (quality === 'know'){
+    item.reps += 1;
+    item.interval = item.reps === 1 ? 1 : Math.round(item.interval * item.ease);
+    item.ease = Math.min(2.9, item.ease + 0.05);
+    item.due = now() + item.interval * DAY;
+  } else if (quality === 'fuzzy'){
+    // 勉强想起：轻度遗忘，间隔折半、系数略降，但不归零
+    item.ease = Math.max(1.3, item.ease - 0.15);
+    item.interval = Math.max(1, Math.round(item.interval / 2));
+    item.reps = 0;
+    item.due = now() + item.interval * DAY;
+  } else {
+    // 完全遗忘：间隔回落到 1 天，系数下降，需重新巩固
+    item.ease = Math.max(1.3, item.ease - 0.2);
+    item.interval = 1;
+    item.reps = 0;
+    item.due = now() + DAY;
+  }
+}
+
+/* =========================================================================
+ * 演示数据
+ * ========================================================================= */
+const WORDS = [
+  { word:'resilient', phon:'/rɪˈzɪliənt/', meaning:'adj. 有韧性的；能快速恢复的', book:'蓝哥固定搭配单词本',
+    example:'A <b>resilient</b> person bounces back from setbacks quickly.' },
+  { word:'meticulous', phon:'/məˈtɪkjələs/', meaning:'adj. 一丝不苟的；极仔细的', book:'往年固定搭配单词本',
+    example:'She kept <b>meticulous</b> records of every transaction.' },
+  { word:'ephemeral', phon:'/ɪˈfemərəl/', meaning:'adj. 短暂的；转瞬即逝的', book:'蓝哥固定搭配单词本',
+    example:'Fame can be <b>ephemeral</b>, here today and gone tomorrow.' },
+  { word:'candid', phon:'/ˈkændɪd/', meaning:'adj. 坦率的；直言不讳的', book:'自建词本',
+    example:'He gave a <b>candid</b> account of what went wrong.' },
+  { word:'nuance', phon:'/ˈnuːɑːns/', meaning:'n. 细微差别', book:'蓝哥固定搭配单词本',
+    example:'She appreciated the <b>nuance</b> in his tone.' }
+];
+
+/* 版权水印：与 app 一致 —— 仅「蓝哥固定搭配单词本」「往年固定搭配单词本」显示，
+ * 其余词本不显示。水印不可取消（版权资料来源标注）。 */
+const BLUE_BOOK_NAME = '蓝哥固定搭配单词本';
+const PAST_YEARS_BOOK_NAME = '往年固定搭配单词本';
+const BLUE_BOOK_WATERMARK = '资料版权归湖北小蓝书教育科技有限公司';
+const watermarkFor = (book) =>
+  (book === BLUE_BOOK_NAME || book === PAST_YEARS_BOOK_NAME) ? BLUE_BOOK_WATERMARK : null;
+
+/* =========================================================================
+ * 模糊壁纸层：7 套渐变占位（按星期几轮换，对应 app 的 bg1..bg7 实拍图）
+ * 模糊 14px + 0.18 压暗由 CSS 完成，与 AppBackground 一致。
+ * ========================================================================= */
+const WALLPAPERS = [
+  // 0 周日：玫瑰 / 蜜桃
+  'radial-gradient(120% 120% at 20% 10%, #f7b79a 0%, transparent 55%), linear-gradient(135deg, #c96f8e 0%, #7a4a86 100%)',
+  // 1 周一：深海蓝 / 青
+  'radial-gradient(120% 120% at 80% 15%, #6fd6e0 0%, transparent 55%), linear-gradient(135deg, #1f5f86 0%, #143b5e 100%)',
+  // 2 周二：落日橙 / 粉
+  'radial-gradient(120% 120% at 25% 20%, #ffd28a 0%, transparent 55%), linear-gradient(135deg, #e8743b 0%, #b8466f 100%)',
+  // 3 周三：森林绿
+  'radial-gradient(120% 120% at 75% 10%, #9fe0a8 0%, transparent 55%), linear-gradient(135deg, #2f7d5b 0%, #1d4a3e 100%)',
+  // 4 周四：紫罗兰暮色
+  'radial-gradient(120% 120% at 20% 15%, #c9a8f0 0%, transparent 55%), linear-gradient(135deg, #6a4ea8 0%, #3a2a66 100%)',
+  // 5 周五：琥珀金
+  'radial-gradient(120% 120% at 80% 20%, #ffe1a0 0%, transparent 55%), linear-gradient(135deg, #d99a2b 0%, #8a5a1e 100%)',
+  // 6 周六：石板靛蓝
+  'radial-gradient(120% 120% at 25% 10%, #a7c4e8 0%, transparent 55%), linear-gradient(135deg, #3f5d8a 0%, #232f4d 100%)'
+];
+function applyWallpaper(){
+  const d = new Date().getDay(); // 0=周日 .. 6=周六
+  document.getElementById('wallpaper').style.backgroundImage = WALLPAPERS[d];
+}
+
+/* =========================================================================
+ * UI 层
+ * ========================================================================= */
+const $ = (id) => document.getElementById(id);
+const srs = WORDS.map(() => createItem());
+let idx = 0;
+let revealed = false;
+
+function renderMeta(){
+  const it = srs[idx];
+  let label;
+  if (it.stage === 'learning'){
+    const dots = Array.from({length:LEARN_REQUIRED},
+      (_,i)=>`<span class="dot ${i < it.consecutive ? 'on':''}"></span>`).join('');
+    label = `初学 · 连对 ${it.consecutive}/${LEARN_REQUIRED}<span class="dots">${dots}</span>`;
+  } else {
+    const d = daysBetween(it.due);
+    label = `复习 · 下次 ${d === 0 ? '明天' : d + ' 天后'}`;
+  }
+  $('meta').innerHTML = `${idx + 1} / ${WORDS.length} &nbsp;·&nbsp; ${label}`;
+}
+
+function renderCard(){
+  const w = WORDS[idx];
+  $('word').textContent = w.word;
+  $('phon').textContent = w.phon;
+  $('example').innerHTML = w.example;
+  revealed = false;
+  $('meaning').classList.remove('show');
+  $('meaning').textContent = w.meaning;
+  $('hint').textContent = '看释义';
+  $('watermark').textContent = watermarkFor(w.book) || '';
+  renderMeta();
+}
+
+function speak(){
+  const w = WORDS[idx].word;
+  if (!('speechSynthesis' in window)) return;
+  try{
+    const u = new SpeechSynthesisUtterance(w);
+    u.lang = 'en-US'; u.rate = 0.92;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){ /* 环境不支持则静默 */ }
+}
+
+function nextCard(){
+  idx = (idx + 1) % WORDS.length;
+  renderCard();
+}
+
+$('speak').addEventListener('click', speak);
+$('hint').addEventListener('click', () => {
+  revealed = !revealed;
+  $('meaning').classList.toggle('show', revealed);
+  $('hint').textContent = revealed ? '收起' : '看释义';
+});
+
+document.querySelectorAll('.actions button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const q = btn.dataset.q;
+    const it = srs[idx];
+    rate(it, q);
+    // 不认识 / 模糊：自动展开释义，帮助用户建立记忆
+    if (q !== 'know'){
+      revealed = true;
+      $('meaning').classList.add('show');
+      $('hint').textContent = '收起';
+    }
+    renderMeta();
+    // 轻微延迟后翻到下一张，给状态行一个可读窗口
+    setTimeout(nextCard, q === 'know' ? 220 : 520);
+  });
+});
+
+applyWallpaper();
+renderCard();
+</script>
+</body>
+</html>

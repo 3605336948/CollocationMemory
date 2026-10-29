@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  系统备份规则（Android 11 及以下）。
+  必须包含 database 域，否则学习记录（Room 数据库）不会随系统备份，
+  用户换机或恢复出厂后会丢掉全部学习进度。
+-->
+<full-backup-content>
+    <include domain="database" path="."/>
+    <include domain="sharedpref" path="."/>
+    <exclude domain="sharedpref" path="device.xml"/>
+</full-backup-content>

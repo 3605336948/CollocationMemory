@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  分享「学习战绩」图片 + 交付更新包 时用到的 FileProvider 路径。
+
+  只暴露 cache 下的两个子目录，避免把整个应用私有目录暴露出去：
+  - share/   ：生成的分享图
+  - updates/ ：下载好的更新 APK，交给系统安装器时临时授权可读
+-->
+<paths>
+    <cache-path name="share" path="share/" />
+    <cache-path name="updates" path="updates/" />
+</paths>
